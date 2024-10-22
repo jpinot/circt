@@ -555,6 +555,16 @@ struct ConstantOpConv : public OpConversionPattern<ConstantOp> {
   }
 };
 
+struct StringConstantOpConv : public OpConversionPattern<StringConstantOp> {
+  using OpConversionPattern::OpConversionPattern;
+  LogicalResult
+  matchAndRewrite(StringConstantOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<moore::StringConstantOp>(op, adaptor.getValue());
+    return success();
+  }
+};
+
 struct ConcatOpConversion : public OpConversionPattern<ConcatOp> {
   using OpConversionPattern::OpConversionPattern;
   LogicalResult
