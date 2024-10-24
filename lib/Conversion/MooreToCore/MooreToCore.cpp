@@ -555,32 +555,23 @@ struct ConstantOpConv : public OpConversionPattern<ConstantOp> {
   }
 };
 
-// TODO: remove doubled sim dialect in doc/Dialects/
-/* more or less f4211d71ff47729b831434309ca097bccf55534f */
 struct StringConstantOpConv : public OpConversionPattern<StringConstantOp> {
   using OpConversionPattern::OpConversionPattern;
   LogicalResult
   matchAndRewrite(StringConstantOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-      /* int64_t width = llvm::Log2_64_Ceil(arrTy.getNumElements()); */
-      /* Value idx = rewriter.create<hw::ConstantOp>( */
-      /*     op.getLoc(), rewriter.getIntegerType(width), adaptor.getLowBit()); */
+    StringRef stringValue = op.getValue();
+    size_t length = stringValue.size();
+    auto i8Type = rewriter.getIntegerType(8);
+    auto arrayType = hw::ArrayType::get(i8Type, length); // hw.array<Nxi8>
 
-      /* if (isa<hw::ArrayType>(resultType)) { */
-    /* auto inputType = adaptor.getValue().getAsInteger(); */
-    /* auto arrTy = dyn_cast<hw::ArrayType>(inputType); */
-    Type resultType = typeConverter->convertType(op.getResult().getType());
-    /*   int64_t width = llvm::Log2_64_Ceil(arrTy.getNumElements()); */
-    /*   Value idx = rewriter.create<hw::ConstantOp>( */
-    /*       op.getLoc(), rewriter.getIntegerType(width), adaptor.getLowBit()); */
-
-    rewriter.replaceOpWithNewOp<hw::ArraySliceOp>(op, resultType,
-                                                      op.getResult(), op.getResult());
-    /* rewriter.replaceOpWithNewOp<hw::ArraySliceOp>(op, resultType, */
-    /*                                                   adaptor.getInput(), idx); */
-      /* } */
-    /* rewriter.replaceOpWithNewOp<sim::FormatStringConcatOp>(op, */
-    /*                                                        adaptor.getValue()); */
+    SmallVector<Value, 4> byteConstants;
+    for (const auto& value : stringValue) {
+      auto byteValue = rewriter.getIntegerAttr(i8Type, value);
+      auto byteConstant = rewriter.create<hw::ConstantOp>(op.getLoc(), i8Type, byteValue);
+      byteConstants.push_back(byteConstant);
+    }
+    rewriter.replaceOpWithNewOp<hw::ArrayCreateOp>(op, arrayType, byteConstants);
     return success();
   }
 };
