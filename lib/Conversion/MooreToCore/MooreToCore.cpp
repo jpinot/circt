@@ -555,12 +555,32 @@ struct ConstantOpConv : public OpConversionPattern<ConstantOp> {
   }
 };
 
+// TODO: remove doubled sim dialect in doc/Dialects/
+/* more or less f4211d71ff47729b831434309ca097bccf55534f */
 struct StringConstantOpConv : public OpConversionPattern<StringConstantOp> {
   using OpConversionPattern::OpConversionPattern;
   LogicalResult
   matchAndRewrite(StringConstantOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    rewriter.replaceOpWithNewOp<moore::StringConstantOp>(op, adaptor.getValue());
+      /* int64_t width = llvm::Log2_64_Ceil(arrTy.getNumElements()); */
+      /* Value idx = rewriter.create<hw::ConstantOp>( */
+      /*     op.getLoc(), rewriter.getIntegerType(width), adaptor.getLowBit()); */
+
+      /* if (isa<hw::ArrayType>(resultType)) { */
+    /* auto inputType = adaptor.getValue().getAsInteger(); */
+    /* auto arrTy = dyn_cast<hw::ArrayType>(inputType); */
+    Type resultType = typeConverter->convertType(op.getResult().getType());
+    /*   int64_t width = llvm::Log2_64_Ceil(arrTy.getNumElements()); */
+    /*   Value idx = rewriter.create<hw::ConstantOp>( */
+    /*       op.getLoc(), rewriter.getIntegerType(width), adaptor.getLowBit()); */
+
+    rewriter.replaceOpWithNewOp<hw::ArraySliceOp>(op, resultType,
+                                                      op.getResult(), op.getResult());
+    /* rewriter.replaceOpWithNewOp<hw::ArraySliceOp>(op, resultType, */
+    /*                                                   adaptor.getInput(), idx); */
+      /* } */
+    /* rewriter.replaceOpWithNewOp<sim::FormatStringConcatOp>(op, */
+    /*                                                        adaptor.getValue()); */
     return success();
   }
 };
@@ -1488,6 +1508,9 @@ static void populateOpConversion(RewritePatternSet &patterns,
     StructExtractOpConversion, StructExtractRefOpConversion,
     ExtractRefOpConversion, StructCreateOpConversion, ConditionalOpConversion,
     YieldOpConversion, OutputOpConversion,
+
+    // XXX: My pattern, StringConstantOpConv
+    StringConstantOpConv,
 
     // Patterns of unary operations.
     ReduceAndOpConversion, ReduceOrOpConversion, ReduceXorOpConversion,
